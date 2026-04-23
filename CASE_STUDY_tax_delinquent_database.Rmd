@@ -1,0 +1,155 @@
+---
+title: "Case Study - Bexar Co - Tax Delinquent Multifamily"
+author: "Alexis Lay"
+date: "2026-04-22"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+
+## Step 1: Data Extraction and Preparation (Excel)
+
+The original dataset was too large to process efficiently in R. Therefore, Microsoft Excel Power Query was used to filter the dataset prior to analysis.
+
+Using the “Get Data → From Text/CSV” function, the dataset was imported into Power Query. The HOCAT variable was then filtered to include only the following property types:
+- **B1**: Apartments
+- **B2**: Duplexes
+
+The filtered dataset was then loaded into Excel and exported as a CSV file for use in R.
+
+This preprocessing step significantly reduced the dataset size and improved computational efficiency for subsequent analysis.
+
+
+## Step 2- Data Loading
+```{r}
+library(tidyverse)
+
+bexar_filtered <- read_csv("Bexar_B1_B2_filtered- CSV file.csv")
+```
+
+
+## Step 3: Data Overview
+The structure of the dataset was examined to understand variable types and overall data composition.
+
+```{r}
+glimpse(bexar_filtered)
+```
+
+
+## Step 4 - Property Types Distribution
+The dataset was filtered to include only two property categories based on the HOCAT variable:
+- **B1**: Apartments
+- **B2**: Duplexes
+
+The following table summarizes the frequency of each property type in the dataset.
+
+```{r}
+bexar_filtered %>%
+  count(HOCAT) %>%
+  arrange(desc(n))
+```
+
+
+## Step 5: Create Total Debt Column
+A total debt variable was created for each row by combining the levy balance, interest due, and penalty due amounts. This provides a single measure of debt at the record level before summarizing by property.
+
+```{r}
+bexar_clean <- bexar_filtered %>%
+  mutate(
+    CAN = stringr::str_trim(as.character(format(CAN, scientific = FALSE))),
+    TOTAL_DEBT_ROW = coalesce(LEVY_BALANCE, 0) + 
+                     coalesce(INTDUE, 0) + 
+                     coalesce(PENDUE, 0)
+  )
+```
+
+## Step 5b: Separate Owner Name from Address
+
+The combined address field was split into owner name and property address using the first numeric character in the field as the boundary.
+
+```{r}
+bexar_clean <- bexar_clean %>%
+  mutate(
+    split_pos = stringr::str_locate(ADDRSTRING, "\\d")[,1],
+    OWNER_NAME = stringr::str_trim(substr(ADDRSTRING, 1, split_pos - 1)),
+    PROPERTY_ADDRESS = stringr::str_trim(substr(ADDRSTRING, split_pos, nchar(ADDRSTRING)))
+  ) %>%
+  select(-split_pos)
+```
+
+## Step 6: Group by Property
+The dataset was summarized at the property level by grouping records by parcel identifier and property type. The "group_by" function combines all the rows that belong to the same property (CAN) and property type (HOCAT) into one summary row. This produced a consolidated view of each property's delinquency history and total debt.
+
+
+```{r}
+property_summary <- bexar_clean %>%
+  group_by(CAN, HOCAT) %>%
+  summarise(
+    PROPERTY_ADDRESS = first(na.omit(PROPERTY_ADDRESS)),
+    OWNER_NAME = first(na.omit(OWNER_NAME)),
+    delinquent_years = n_distinct(YEAR),
+    total_levy_balance = sum(LEVY_BALANCE, na.rm = TRUE),
+    total_interest = sum(INTDUE, na.rm = TRUE),
+    total_penalty = sum(PENDUE, na.rm = TRUE),
+    total_debt = sum(TOTAL_DEBT_ROW, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+glimpse(property_summary)
+
+head(property_summary)
+
+
+## Step 7: Identify High-Distress Properties
+
+To focus the analysis on the most significant opportunities, properties were filtered to include only those with multiple years of delinquency. Properties with three or more delinquent years were considered to represent more serious financial distress.
+
+```{r}
+serious_targets <- property_summary %>%
+  filter(delinquent_years >= 3)
+```
+
+glimpse(serious_targets)
+
+nrow(serious_targets)
+
+head(serious_targets)
+
+## Step 8: Rank High-Distress Properties
+The filtered properties were ranked based on total outstanding debt and number of delinquent years to prioritize the most severe cases.
+
+```{r}
+ranked_targets <- serious_targets %>%
+  arrange(desc(total_debt), desc(delinquent_years))
+```
+
+## Step 9: Output and Export Ranked Target Properties
+
+The final ranked list of high-distress properties is displayed below and exported for further analysis.  
+This dataset includes all identified properties, along with key variables such as address, owner name, delinquency duration, and total outstanding debt.
+
+```{r}
+# Display full ranked list (ALL rows)
+print(ranked_targets, n = Inf)
+```
+
+```{r}
+# Export for external analysis
+library(writexl)
+
+write_xlsx(ranked_targets, "ranked_targets_FULL.xlsx")
+```
+
+
+## Conclusion
+This analysis identified 34 multifamily properties in Bexar County exhibiting significant tax delinquency, defined as three or more years of unpaid obligations.
+
+By aggregating financial data at the property level and ranking properties based on total outstanding debt and duration of delinquency, a prioritized list of high-distress targets was developed.
+
+The resulting dataset provides a structured foundation for further due diligence, including appraisal value assessment and equity analysis, to identify potential investment opportunities.
