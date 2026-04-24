@@ -10,6 +10,9 @@ See the R Markdown file: [CASE_STUDY_tax_delinquent_database.Rmd](./CASE_STUDY_t
 - Filtered the dataset to isolate higher-distress cases
 - Produced a ranked list of properties for targeted follow-up analysis
 
+## Data Source
+Publicly available delinquent tax dataset (Bexar County).
+
 ## Tools Used
 - Excel (data filtering and preprocessing)
 - R (data analysis and exploration)
