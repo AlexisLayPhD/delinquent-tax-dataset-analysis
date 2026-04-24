@@ -5,6 +5,11 @@ This project focuses on data cleaning, filtering, and identifying patterns to ge
 ## View the Analysis
 See the R Markdown file: [CASE_STUDY_tax_delinquent_database.Rmd](./CASE_STUDY_tax_delinquent_database.Rmd)
 
+## Key Findings
+- Identified variation in delinquency duration and total outstanding debt across properties
+- Filtered the dataset to isolate higher-distress cases
+- Produced a ranked list of properties for targeted follow-up analysis
+
 ## Tools Used
 - Excel (data filtering and preprocessing)
 - R (data analysis and exploration)
