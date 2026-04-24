@@ -1,7 +1,9 @@
 # Delinquent Tax Dataset Analysis
-
 Exploratory data analysis of delinquent tax datasets using Excel and R.  
 This project focuses on data cleaning, filtering, and identifying patterns to generate insights that support real estate decision-making.
+
+## View the Analysis
+See the R Markdown file: [CASE_STUDY_tax_delinquent_database.Rmd](./CASE_STUDY_tax_delinquent_database.Rmd)
 
 ## Tools Used
 - Excel (data filtering and preprocessing)
